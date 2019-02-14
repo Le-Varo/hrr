@@ -2,9 +2,13 @@
     "name": "hrr",
     "version": "0.0.1",
     "dependencies": {
-        "mongoose": "~3.6.11",
+        "body-parser": "^1.5.1",
         "express": "^4.7.1",
+        "file-stream-rotator": "^0.4.1",
+        "fs": "0.0.1-security",
+        "helmet": "^3.15.1",
         "method-override": "^2.1.2",
-        "body-parser": "^1.5.1"
+        "mongoose": "^5.4.12",
+        "morgan": "^1.9.1"
     }
 }
