@@ -12,7 +12,8 @@ const mongoose = require('mongoose');
 const helmet = require('helmet');
 
 var app = express();
-var port = 3000;
+// Deja elegir a heroku el puerto
+var port = process.env.PORT || 3000;
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
