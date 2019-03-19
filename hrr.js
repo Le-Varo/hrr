@@ -8,7 +8,6 @@ const fs = require('fs');
 
 const bodyParser = require("body-parser");
 const methodOverride = require("method-override");
-const mongoose = require('mongoose');
 const helmet = require('helmet');
 
 const basicAuth = require('basic-auth');

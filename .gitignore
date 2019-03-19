@@ -1,3 +1,6 @@
+# Local config
+lib/main/database/*.json
+
 # Logs
 logs
 *.log

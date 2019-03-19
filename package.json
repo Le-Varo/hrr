@@ -9,8 +9,9 @@
         "fs": "0.0.1-security",
         "helmet": "^3.15.1",
         "method-override": "^2.3.10",
-        "mongoose": "^5.4.12",
-        "morgan": "^1.9.1"
+        "mongoose": "^5.4.19",
+        "morgan": "^1.9.1",
+        "querystring": "^0.2.0"
     },
     "scripts": {
         "start": "node hrr.js"
