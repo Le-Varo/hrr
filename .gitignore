@@ -1,5 +1,5 @@
 # Local config
-lib/main/database/*.json
+config.json
 
 # Logs
 logs
