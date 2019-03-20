@@ -102,7 +102,7 @@ router.all(api_dir + '*', [sendResponse]); // Recoge el resto de peticiones
 
 app.use(router);
 
-app.use(function(err, req, res, next) {
+app.use(function (err, req, res, next) {
   console.error(err.stack);
   var time = new Date().getTime();
   var response = {
@@ -111,21 +111,21 @@ app.use(function(err, req, res, next) {
     method: req.method
   }
   if (err instanceof SyntaxError) {
-		response.error= {
+    response.error = {
       status: 400,
       msg: "Invalid JSON Body"
     };
 
-		res.status(400).json(response);
-	} else {
-    response.error= {
+    res.status(400).json(response);
+  } else {
+    response.error = {
       status: 500,
       msg: "Unknowkn Error"
     };
 
-		res.status(500).json(response);
-		next();
-	}
+    res.status(500).json(response);
+    next();
+  }
 });
 
 app.listen(port, function () {
