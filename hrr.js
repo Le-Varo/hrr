@@ -51,7 +51,7 @@ function sendResponse(req, res) {
   };
 
   if (res.user) {
-    response.user = res.user[0];
+    response.user = res.user;
   } else if (res.error) {
     response.request = req.url;
     response.method = req.method;
@@ -98,7 +98,32 @@ function login(req, res, next) {
   })
 }
 
+function register(req, res, next) {
+  var user = basicAuth(req);
+  var user = req.body.username;
+  var pass = req.body.password;
+
+  var parameters = {
+    "user": user,
+    "pass": pass
+  }
+
+  users.register(parameters, function (err) {
+    if (err) {
+      res.error = {
+        status: 400,
+        msg: "Registration failed! Try Again."
+      }
+      next();
+    } else {
+      next();
+    }
+  })
+}
+
 router.post(api_dir + "login", [login, sendResponse]);
+router.post(api_dir + "register", [register, sendResponse]);
+
 
 router.all(api_dir + '*', [sendResponse]); // Recoge el resto de peticiones
 
