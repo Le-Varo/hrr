@@ -73,7 +73,7 @@ function sendResponse(req, res) {
   res.send(response);
 }
 
-router.post(api_dir + "login", [function (req, res, next) {
+function login(req, res, next) {
   var user = basicAuth(req);
   var user = req.body.username;
   var pass = req.body.password;
@@ -96,7 +96,9 @@ router.post(api_dir + "login", [function (req, res, next) {
       next();
     }
   })
-}, sendResponse]);
+}
+
+router.post(api_dir + "login", [login, sendResponse]);
 
 router.all(api_dir + '*', [sendResponse]); // Recoge el resto de peticiones
 
