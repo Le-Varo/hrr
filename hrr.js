@@ -74,7 +74,6 @@ function sendResponse(req, res) {
 }
 
 function login(req, res, next) {
-  var user = basicAuth(req);
   var user = req.body.username;
   var pass = req.body.password;
   var token = "";
@@ -86,6 +85,7 @@ function login(req, res, next) {
 
   users.login(user, pass, token, function (err, user) {
     if (err) {
+      console.error(err);
       res.error = {
         status: 400,
         msg: "Login Failed! Username or password is incorrect."
@@ -104,12 +104,13 @@ function register(req, res, next) {
   var pass = req.body.password;
 
   var parameters = {
-    "user": user,
-    "pass": pass
+    "username": user,
+    "password": pass
   }
 
-  users.register(parameters, function (err) {
+  users.register(parameters, function (err, user) {
     if (err) {
+      console.error(err);
       res.error = {
         status: 400,
         msg: "Registration failed! Try Again."
