@@ -102,16 +102,16 @@ function sendResponse(req, res) {
 }
 
 function login(req, res, next) {
-  var user = req.body.username;
+  var email = req.body.email;
   var pass = req.body.password;
   var token = "";
 
-  if (!user && !pass) {
+  if (!email && !pass) {
     var auth = basicAuth(req);
     token = (auth) ? auth.name : "";
   }
 
-  users.login(user, pass, token, function (err, user) {
+  users.login(email, pass, token, function (err, user) {
     if (err) {
       console.error(err);
       res.error = knownErrors["LOGIN_FAILED"];
