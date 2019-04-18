@@ -51,7 +51,7 @@ var knownErrors = {
     msg: "Invalid JSON Body"
   },
   "LOGIN_FAILED": {
-    msg: "Login Failed! Username or password is incorrect.",
+    msg: "Login Failed! Email or password are incorrect.",
     status: 401
   },
   "METH_NOTFOUND": {
@@ -59,7 +59,7 @@ var knownErrors = {
     status: 404
   },
   "PAR_INUSE": {
-    msg: "Parameters in Use.",
+    msg: "Email in Use.",
     status: 400
   },
   "PAR_MISSING": {
@@ -111,40 +111,47 @@ function login(req, res, next) {
     token = (auth) ? auth.name : "";
   }
 
-  users.login(email, pass, token, function (err, user) {
-    if (err) {
-      console.error(err);
-      res.error = knownErrors["LOGIN_FAILED"];
-
-      next();
-    } else {
-      res.user = user;
-      next();
-    }
-  })
+  if (!email && !pass && !token) {
+    res.error = knownErrors["LOGIN_FAILED"];
+    next();
+  } else {
+    users.login(email, pass, token, function (err, user) {
+      if (err) {
+        // console.error(err);
+        res.error = knownErrors["LOGIN_FAILED"];
+        next();
+      } else {
+        res.user = user;
+        next();
+      }
+    })
+  }
 }
 
 function register(req, res, next) {
-  var user = basicAuth(req);
-  var user = req.body.username;
+  var email = req.body.email;
   var pass = req.body.password;
 
-  var parameters = {
-    "username": user,
-    "password": pass
-  }
-
-  users.register(parameters, function (err, user) {
-    if (err) {
-      console.error(err);
-      res.error = (knownErrors.hasOwnPropert(err.message)) ? knownErrors[err.message] : knownErrors["REGISTER_FAILED"];
-
-      next();
-    } else {
-      res.user = user;
-      next();
+  if (email === undefined || pass === undefined) {
+    res.error = knownErrors["PAR_MISSING"];
+    next();
+  } else {
+    var parameters = {
+      "email": email,
+      "password": pass
     }
-  })
+
+    users.register(parameters, function (err, user) {
+      if (err) {
+        // console.error(err);
+        res.error = (knownErrors.hasOwnProperty(err.message)) ? knownErrors[err.message] : knownErrors["REGISTER_FAILED"];
+        next();
+      } else {
+        res.user = user;
+        next();
+      }
+    })
+  }
 }
 
 router.post(api_dir + "login", [login, sendResponse]);
