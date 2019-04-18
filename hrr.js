@@ -45,6 +45,37 @@ var api_dir = "/";
 
 var router = express.Router();
 
+var knownErrors = {
+  "BODY_INVALID": {
+    status: 400,
+    msg: "Invalid JSON Body"
+  },
+  "LOGIN_FAILED": {
+    msg: "Login Failed! Username or password is incorrect.",
+    status: 401
+  },
+  "METH_NOTFOUND": {
+    msg: "Method not found",
+    status: 404
+  },
+  "PAR_INUSE": {
+    msg: "Parameters in Use.",
+    status: 400
+  },
+  "PAR_MISSING": {
+    msg: "Missing parameters.",
+    status: 400
+  },
+  "REGISTER_FAILED": {
+    msg: "Registration failed! Try Again.",
+    status: 403
+  },
+  "UNKNOWN_ERROR": {
+    status: 500,
+    msg: "Unknowkn Error"
+  }
+}
+
 function sendResponse(req, res) {
   var response = {
     response_time: ''
@@ -61,10 +92,7 @@ function sendResponse(req, res) {
   } else {
     response.request = req.url;
     response.method = req.method;
-    response.error = {
-      status: 404,
-      msg: "Method not found"
-    };
+    response.error = knownErrors["METH_NOTFOUND"];
 
     res.status(response.error.status);
   }
@@ -86,10 +114,8 @@ function login(req, res, next) {
   users.login(user, pass, token, function (err, user) {
     if (err) {
       console.error(err);
-      res.error = {
-        status: 400,
-        msg: "Login Failed! Username or password is incorrect."
-      };
+      res.error = knownErrors["LOGIN_FAILED"];
+
       next();
     } else {
       res.user = user;
@@ -111,10 +137,8 @@ function register(req, res, next) {
   users.register(parameters, function (err, user) {
     if (err) {
       console.error(err);
-      res.error = {
-        status: 400,
-        msg: "Registration failed! Try Again."
-      }
+      res.error = (knownErrors.hasOwnPropert(err.message)) ? knownErrors[err.message] : knownErrors["REGISTER_FAILED"];
+
       next();
     } else {
       res.user = user;
@@ -140,17 +164,11 @@ app.use(function (err, req, res, next) {
     method: req.method
   }
   if (err instanceof SyntaxError) {
-    response.error = {
-      status: 400,
-      msg: "Invalid JSON Body"
-    };
+    response.error = knownErrors["BODY_INVALID"];
 
     res.status(400).json(response);
   } else {
-    response.error = {
-      status: 500,
-      msg: "Unknowkn Error"
-    };
+    response.error = knownErrors["UNKNOWN_ERROR"];
 
     res.status(500).json(response);
     next();
