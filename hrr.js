@@ -117,6 +117,7 @@ function register(req, res, next) {
       }
       next();
     } else {
+      res.user = user;
       next();
     }
   })
