@@ -11,6 +11,8 @@ const methodOverride = require("method-override");
 const helmet = require('helmet');
 
 const basicAuth = require('basic-auth');
+
+const config = require("./lib/main/config.js")
 const users = require("./lib/main/admin/users.js");
 
 var app = express();
@@ -101,6 +103,11 @@ function sendResponse(req, res) {
   res.send(response);
 }
 
+function preAPI(req, res, next) {
+  config.setHost(req.get('host'));
+  next();
+}
+
 function login(req, res, next) {
   var email = req.body.email;
   var pass = req.body.password;
@@ -154,8 +161,8 @@ function register(req, res, next) {
   }
 }
 
-router.post(api_dir + "login", [login, sendResponse]);
-router.post(api_dir + "register", [register, sendResponse]);
+router.post(api_dir + "login", [preAPI, login, sendResponse]);
+router.post(api_dir + "register", [preAPI, register, sendResponse]);
 
 
 router.all(api_dir + '*', [sendResponse]); // Recoge el resto de peticiones
