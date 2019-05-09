@@ -14,6 +14,7 @@ const basicAuth = require('basic-auth');
 
 const config = require("./lib/main/config.js")
 const users = require("./lib/main/admin/users.js");
+const registerToken = require("./lib/main/admin/registerToken.js");
 
 var app = express();
 // Deja elegir a heroku el puerto
@@ -49,8 +50,8 @@ var router = express.Router();
 
 var knownErrors = {
   "BODY_INVALID": {
-    status: 400,
-    msg: "Invalid JSON Body"
+    msg: "Invalid JSON Body",
+    status: 400
   },
   "LOGIN_FAILED": {
     msg: "Login Failed! Email or password are incorrect.",
@@ -73,8 +74,20 @@ var knownErrors = {
     status: 403
   },
   "UNKNOWN_ERROR": {
-    status: 500,
-    msg: "Unknowkn Error"
+    msg: "Unknowkn Error",
+    status: 500
+  },
+  "VALIDATION_EXPIRED": {
+    msg: "Validation failed! Token has Expired",
+    status: 403
+  },
+  "VALIDATION_FAILED": {
+    msg: "Validation failed!",
+    status: 403
+  },
+  "VALIDATION_NOTOKEN": {
+    msg: "Validation failed! No token found for this user",
+    status: 403
   }
 }
 
@@ -161,9 +174,33 @@ function register(req, res, next) {
   }
 }
 
+function validate(req, res, next) {
+  var id = req.query.id;
+  if (id === undefined) {
+    res.error = knownErrors["PAR_MISSING"];
+    next();
+  } else {
+    registerToken.validate(id, function (error, result) {
+      if (error) {
+        res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["VALIDATION_FAILED"];
+        next();
+      } else {
+        // users.validate(result.access_token, function (error, result) {
+        //   if (error) {
+        //     res.error = (knownErrors.hasOwnProperty(err.message)) ? knownErrors[err.message] : knownErrors["VALIDATION_FAILED"];
+        next();
+        //   } else {
+        //     next();
+        //   }
+        // });
+      }
+    });
+  }
+}
+
 router.post(api_dir + "login", [preAPI, login, sendResponse]);
 router.post(api_dir + "register", [preAPI, register, sendResponse]);
-
+router.get(api_dir + "validate", [preAPI, validate, sendResponse]);
 
 router.all(api_dir + '*', [sendResponse]); // Recoge el resto de peticiones
 
