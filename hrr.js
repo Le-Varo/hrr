@@ -201,9 +201,29 @@ function activate(req, res, next) {
   }
 }
 
+function askResetToken(req, res, next) {
+  var email = req.query.email;
+  if (email === undefined) {
+    res.error = knownErrors["PAR_MISSING"];
+    next();
+  } else {
+    users.askResetToken(email, function (error, result) {
+      if (error) {
+        res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["VALIDATION_FAILED"];
+        next();
+      } else {
+        next();
+      }
+    });
+  }
+}
+
+
 router.post(api_dir + "login", [preAPI, login, sendResponse]);
 router.post(api_dir + "register", [preAPI, register, sendResponse]);
 router.get(api_dir + "activate", [preAPI, activate, sendResponse]);
+router.get(api_dir + "askResetToken", [preAPI, askResetToken, sendResponse]);
+// router.get(api_dir + "reset", [preAPI, reset, sendResponse]);
 
 // router.post(api_dir + "modify/:source/:id", [preAPI, modify, sendResponse]);
 // router.post(api_dir + "remove/:source/:id", [preAPI, remove, sendResponse]);
