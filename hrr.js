@@ -176,7 +176,7 @@ function register(req, res, next) {
   }
 }
 
-function validate(req, res, next) {
+function activate(req, res, next) {
   var id = req.query.id;
   if (id === undefined) {
     res.error = knownErrors["PAR_MISSING"];
@@ -203,7 +203,7 @@ function validate(req, res, next) {
 
 router.post(api_dir + "login", [preAPI, login, sendResponse]);
 router.post(api_dir + "register", [preAPI, register, sendResponse]);
-router.get(api_dir + "validate", [preAPI, validate, sendResponse]);
+router.get(api_dir + "activate", [preAPI, activate, sendResponse]);
 
 // router.post(api_dir + "modify/:source/:id", [preAPI, modify, sendResponse]);
 // router.post(api_dir + "remove/:source/:id", [preAPI, remove, sendResponse]);
