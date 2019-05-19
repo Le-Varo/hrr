@@ -88,6 +88,10 @@ var knownErrors = {
   "VALIDATION_NOTOKEN": {
     msg: "Validation failed! No token found for this user",
     status: 403
+  },
+  "RESETTOKEN_FAILED": {
+    msg: "Reset Token failed!",
+    status: 403
   }
 }
 
@@ -95,8 +99,9 @@ function sendResponse(req, res) {
   var response = {
     response_time: ''
   };
-
-  if (res.user) {
+  if (res.done) {
+    response.done = res.done;
+  } else if (res.user) {
     response.user = res.user;
   } else if (res.updated) {
     response.updated = res.updated;
@@ -182,12 +187,12 @@ function activate(req, res, next) {
     res.error = knownErrors["PAR_MISSING"];
     next();
   } else {
-    registerToken.validate(id, function (error, result) {
+    registerToken.activate(id, function (error, result) {
       if (error) {
         res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["VALIDATION_FAILED"];
         next();
       } else {
-        users.validate(result.access_token, function (error, result) {
+        users.activate(result.access_token, function (error, result) {
           if (error) {
             res.error = (knownErrors.hasOwnProperty(err.message)) ? knownErrors[err.message] : knownErrors["VALIDATION_FAILED"];
             next();
@@ -207,11 +212,12 @@ function askResetToken(req, res, next) {
     res.error = knownErrors["PAR_MISSING"];
     next();
   } else {
-    users.askResetToken(email, function (error, result) {
+    users.askResetToken(email, function (error) {
       if (error) {
-        res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["VALIDATION_FAILED"];
+        res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["RESETTOKEN_FAILED"];
         next();
       } else {
+        res.done = true;
         next();
       }
     });
