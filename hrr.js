@@ -11,7 +11,10 @@ const methodOverride = require("method-override");
 const helmet = require('helmet');
 
 const basicAuth = require('basic-auth');
+
+const config = require("./lib/main/config.js")
 const users = require("./lib/main/admin/users.js");
+const registerToken = require("./lib/main/admin/registerToken.js");
 
 var app = express();
 // Deja elegir a heroku el puerto
@@ -45,13 +48,58 @@ var api_dir = "/";
 
 var router = express.Router();
 
+var knownErrors = {
+  "BODY_INVALID": {
+    msg: "Invalid JSON Body",
+    status: 400
+  },
+  "LOGIN_FAILED": {
+    msg: "Login Failed! Email or password are incorrect.",
+    status: 401
+  },
+  "METH_NOTFOUND": {
+    msg: "Method not found",
+    status: 404
+  },
+  "PAR_INUSE": {
+    msg: "Email in Use.",
+    status: 400
+  },
+  "PAR_MISSING": {
+    msg: "Missing parameters.",
+    status: 400
+  },
+  "REGISTER_FAILED": {
+    msg: "Registration failed! Try Again.",
+    status: 403
+  },
+  "UNKNOWN_ERROR": {
+    msg: "Unknowkn Error",
+    status: 500
+  },
+  "VALIDATION_EXPIRED": {
+    msg: "Validation failed! Token has Expired",
+    status: 403
+  },
+  "VALIDATION_FAILED": {
+    msg: "Validation failed!",
+    status: 403
+  },
+  "VALIDATION_NOTOKEN": {
+    msg: "Validation failed! No token found for this user",
+    status: 403
+  }
+}
+
 function sendResponse(req, res) {
   var response = {
     response_time: ''
   };
 
   if (res.user) {
-    response.user = res.user[0];
+    response.user = res.user;
+  } else if (res.updated) {
+    response.updated = res.updated;
   } else if (res.error) {
     response.request = req.url;
     response.method = req.method;
@@ -61,10 +109,7 @@ function sendResponse(req, res) {
   } else {
     response.request = req.url;
     response.method = req.method;
-    response.error = {
-      status: 404,
-      msg: "Method not found"
-    };
+    response.error = knownErrors["METH_NOTFOUND"];
 
     res.status(response.error.status);
   }
@@ -73,32 +118,96 @@ function sendResponse(req, res) {
   res.send(response);
 }
 
+function preAPI(req, res, next) {
+  config.setHost(req.get('host'));
+  next();
+}
+
 function login(req, res, next) {
-  var user = basicAuth(req);
-  var user = req.body.username;
+  var email = req.body.email;
   var pass = req.body.password;
   var token = "";
 
-  if (!user && !pass) {
+  if (!email && !pass) {
     var auth = basicAuth(req);
     token = (auth) ? auth.name : "";
   }
 
-  users.login(user, pass, token, function (err, user) {
-    if (err) {
-      res.error = {
-        status: 400,
-        msg: "Login Failed! Username or password is incorrect."
-      };
-      next();
-    } else {
-      res.user = user;
-      next();
-    }
-  })
+  if (!email && !pass && !token) {
+    res.error = knownErrors["LOGIN_FAILED"];
+    next();
+  } else {
+    users.login(email, pass, token, function (err, user) {
+      if (err) {
+        // console.error(err);
+        res.error = knownErrors["LOGIN_FAILED"];
+        next();
+      } else {
+        res.user = user;
+        next();
+      }
+    })
+  }
 }
 
-router.post(api_dir + "login", [login, sendResponse]);
+function register(req, res, next) {
+  var email = req.body.email;
+  var pass = req.body.password;
+
+  if (email === undefined || pass === undefined) {
+    res.error = knownErrors["PAR_MISSING"];
+    next();
+  } else {
+    var parameters = {
+      "email": email,
+      "password": pass
+    }
+
+    users.register(parameters, function (err, user) {
+      if (err) {
+        // console.error(err);
+        res.error = (knownErrors.hasOwnProperty(err.message)) ? knownErrors[err.message] : knownErrors["REGISTER_FAILED"];
+        next();
+      } else {
+        res.user = user;
+        next();
+      }
+    })
+  }
+}
+
+function activate(req, res, next) {
+  var id = req.query.id;
+  if (id === undefined) {
+    res.error = knownErrors["PAR_MISSING"];
+    next();
+  } else {
+    registerToken.validate(id, function (error, result) {
+      if (error) {
+        res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["VALIDATION_FAILED"];
+        next();
+      } else {
+        users.validate(result.access_token, function (error, result) {
+          if (error) {
+            res.error = (knownErrors.hasOwnProperty(err.message)) ? knownErrors[err.message] : knownErrors["VALIDATION_FAILED"];
+            next();
+          } else {
+            res.updated = result;
+            next();
+          }
+        });
+      }
+    });
+  }
+}
+
+router.post(api_dir + "login", [preAPI, login, sendResponse]);
+router.post(api_dir + "register", [preAPI, register, sendResponse]);
+router.get(api_dir + "activate", [preAPI, activate, sendResponse]);
+
+// router.post(api_dir + "modify/:source/:id", [preAPI, modify, sendResponse]);
+// router.post(api_dir + "remove/:source/:id", [preAPI, remove, sendResponse]);
+// router.post(api_dir + "add/:source", [preAPI, add, sendResponse]);
 
 router.all(api_dir + '*', [sendResponse]); // Recoge el resto de peticiones
 
@@ -113,17 +222,11 @@ app.use(function (err, req, res, next) {
     method: req.method
   }
   if (err instanceof SyntaxError) {
-    response.error = {
-      status: 400,
-      msg: "Invalid JSON Body"
-    };
+    response.error = knownErrors["BODY_INVALID"];
 
     res.status(400).json(response);
   } else {
-    response.error = {
-      status: 500,
-      msg: "Unknowkn Error"
-    };
+    response.error = knownErrors["UNKNOWN_ERROR"];
 
     res.status(500).json(response);
     next();
