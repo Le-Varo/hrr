@@ -77,16 +77,16 @@ var knownErrors = {
     msg: "Unknowkn Error",
     status: 500
   },
-  "VALIDATION_EXPIRED": {
-    msg: "Validation failed! Token has Expired",
+  "ACTIVATION_EXPIRED": {
+    msg: "Activation failed! Token has Expired",
     status: 403
   },
-  "VALIDATION_FAILED": {
-    msg: "Validation failed!",
+  "ACTIVATION_FAILED": {
+    msg: "Activation failed!",
     status: 403
   },
-  "VALIDATION_NOTOKEN": {
-    msg: "Validation failed! No token found for this user",
+  "ACTIVATION_NOTOKEN": {
+    msg: "Activation failed! No token found for this user",
     status: 403
   }
 }
@@ -184,12 +184,12 @@ function activate(req, res, next) {
   } else {
     registerToken.validate(id, function (error, result) {
       if (error) {
-        res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["VALIDATION_FAILED"];
+        res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["ACTIVATION_FAILED"];
         next();
       } else {
         users.validate(result.access_token, function (error, result) {
           if (error) {
-            res.error = (knownErrors.hasOwnProperty(err.message)) ? knownErrors[err.message] : knownErrors["VALIDATION_FAILED"];
+            res.error = (knownErrors.hasOwnProperty(err.message)) ? knownErrors[err.message] : knownErrors["ACTIVATION_FAILED"];
             next();
           } else {
             res.updated = result;
