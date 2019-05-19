@@ -98,6 +98,8 @@ function sendResponse(req, res) {
 
   if (res.user) {
     response.user = res.user;
+  } else if (res.updated) {
+    response.updated = res.updated;
   } else if (res.error) {
     response.request = req.url;
     response.method = req.method;
@@ -185,14 +187,15 @@ function validate(req, res, next) {
         res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["VALIDATION_FAILED"];
         next();
       } else {
-        // users.validate(result.access_token, function (error, result) {
-        //   if (error) {
-        //     res.error = (knownErrors.hasOwnProperty(err.message)) ? knownErrors[err.message] : knownErrors["VALIDATION_FAILED"];
-        next();
-        //   } else {
-        //     next();
-        //   }
-        // });
+        users.validate(result.access_token, function (error, result) {
+          if (error) {
+            res.error = (knownErrors.hasOwnProperty(err.message)) ? knownErrors[err.message] : knownErrors["VALIDATION_FAILED"];
+            next();
+          } else {
+            res.updated = result;
+            next();
+          }
+        });
       }
     });
   }
@@ -201,6 +204,10 @@ function validate(req, res, next) {
 router.post(api_dir + "login", [preAPI, login, sendResponse]);
 router.post(api_dir + "register", [preAPI, register, sendResponse]);
 router.get(api_dir + "validate", [preAPI, validate, sendResponse]);
+
+// router.post(api_dir + "modify/:source/:id", [preAPI, modify, sendResponse]);
+// router.post(api_dir + "remove/:source/:id", [preAPI, remove, sendResponse]);
+// router.post(api_dir + "add/:source", [preAPI, add, sendResponse]);
 
 router.all(api_dir + '*', [sendResponse]); // Recoge el resto de peticiones
 
