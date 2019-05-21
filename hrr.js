@@ -73,24 +73,32 @@ var knownErrors = {
     msg: "Registration failed! Try Again.",
     status: 403
   },
+  "RESETTOKEN_FAILED": {
+    msg: "Reset Token failed!",
+    status: 403
+  },
+  "RESETTOKEN_EXPIRED": {
+    msg: "Reset Token failed! Token has Expired",
+    status: 403
+  },
+  "RESETTOKEN_NOTOKEN": {
+    msg: "Reset Token failed! No token found for this user",
+    status: 403
+  },
   "UNKNOWN_ERROR": {
     msg: "Unknowkn Error",
     status: 500
-  },
-  "VALIDATION_EXPIRED": {
-    msg: "Validation failed! Token has Expired",
-    status: 403
   },
   "VALIDATION_FAILED": {
     msg: "Validation failed!",
     status: 403
   },
-  "VALIDATION_NOTOKEN": {
-    msg: "Validation failed! No token found for this user",
+  "VALIDATION_EXPIRED": {
+    msg: "Validation failed! Token has Expired",
     status: 403
   },
-  "RESETTOKEN_FAILED": {
-    msg: "Reset Token failed!",
+  "VALIDATION_NOTOKEN": {
+    msg: "Validation failed! No token found for this user",
     status: 403
   }
 }
@@ -224,12 +232,31 @@ function askResetToken(req, res, next) {
   }
 }
 
+function resetPassword(req, res, next) {
+  var newPassword = req.query.newPassword;
+  var token = req.query.id;
+  if (newPassword === undefined || token === undefined) {
+    res.error = knownErrors["PAR_MISSING"];
+    next();
+  } else {
+    users.resetPassword(token, newPassword, function (error) {
+      if (error) {
+        res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["RESETTOKEN_FAILED"];
+        next();
+      } else {
+        res.done = true;
+        next();
+      }
+    })
+  }
+}
+
 
 router.post(api_dir + "login", [preAPI, login, sendResponse]);
 router.post(api_dir + "register", [preAPI, register, sendResponse]);
 router.get(api_dir + "activate", [preAPI, activate, sendResponse]);
 router.get(api_dir + "askResetToken", [preAPI, askResetToken, sendResponse]);
-// router.get(api_dir + "reset", [preAPI, reset, sendResponse]);
+router.get(api_dir + "resetPassword", [preAPI, resetPassword, sendResponse]);
 
 // router.post(api_dir + "modify/:source/:id", [preAPI, modify, sendResponse]);
 // router.post(api_dir + "remove/:source/:id", [preAPI, remove, sendResponse]);
