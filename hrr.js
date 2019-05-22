@@ -14,7 +14,6 @@ const basicAuth = require('basic-auth');
 
 const config = require("./lib/main/config.js")
 const users = require("./lib/main/admin/users.js");
-const registerToken = require("./lib/main/admin/registerToken.js");
 
 var app = express();
 // Deja elegir a heroku el puerto
@@ -195,20 +194,13 @@ function activate(req, res, next) {
     res.error = knownErrors["PAR_MISSING"];
     next();
   } else {
-    registerToken.activate(id, function (error, result) {
+    users.activate(id, function (error, result) {
       if (error) {
-        res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["VALIDATION_FAILED"];
+        res.error = (knownErrors.hasOwnProperty(err.message)) ? knownErrors[err.message] : knownErrors["VALIDATION_FAILED"];
         next();
       } else {
-        users.activate(result.access_token, function (error, result) {
-          if (error) {
-            res.error = (knownErrors.hasOwnProperty(err.message)) ? knownErrors[err.message] : knownErrors["VALIDATION_FAILED"];
-            next();
-          } else {
-            res.updated = result;
-            next();
-          }
-        });
+        res.updated = result;
+        next();
       }
     });
   }
