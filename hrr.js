@@ -14,7 +14,6 @@ const basicAuth = require('basic-auth');
 
 const config = require("./lib/main/config.js")
 const users = require("./lib/main/admin/users.js");
-const registerToken = require("./lib/main/admin/registerToken.js");
 
 var app = express();
 // Deja elegir a heroku el puerto
@@ -73,20 +72,32 @@ var knownErrors = {
     msg: "Registration failed! Try Again.",
     status: 403
   },
+  "RESETTOKEN_FAILED": {
+    msg: "Reset Token failed!",
+    status: 403
+  },
+  "RESETTOKEN_EXPIRED": {
+    msg: "Reset Token failed! Token has Expired",
+    status: 403
+  },
+  "RESETTOKEN_NOTOKEN": {
+    msg: "Reset Token failed! No token found for this user",
+    status: 403
+  },
   "UNKNOWN_ERROR": {
     msg: "Unknowkn Error",
     status: 500
   },
-  "VALIDATION_EXPIRED": {
-    msg: "Validation failed! Token has Expired",
+  "ACTIVATION_FAILED": {
+    msg: "Activation failed!",
     status: 403
   },
-  "VALIDATION_FAILED": {
-    msg: "Validation failed!",
+  "ACTIVATION_EXPIRED": {
+    msg: "Activation failed! Token has Expired",
     status: 403
   },
-  "VALIDATION_NOTOKEN": {
-    msg: "Validation failed! No token found for this user",
+  "ACTIVATION_NOTOKEN": {
+    msg: "Activation failed! No token found for this user",
     status: 403
   }
 }
@@ -95,8 +106,9 @@ function sendResponse(req, res) {
   var response = {
     response_time: ''
   };
-
-  if (res.user) {
+  if (res.done) {
+    response.done = res.done;
+  } else if (res.user) {
     response.user = res.user;
   } else if (res.updated) {
     response.updated = res.updated;
@@ -182,28 +194,61 @@ function activate(req, res, next) {
     res.error = knownErrors["PAR_MISSING"];
     next();
   } else {
-    registerToken.validate(id, function (error, result) {
+    users.activate(id, function (error, result) {
       if (error) {
-        res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["VALIDATION_FAILED"];
+        res.error = (knownErrors.hasOwnProperty(err.message)) ? knownErrors[err.message] : knownErrors["ACTIVATION_FAILED"];
         next();
       } else {
-        users.validate(result.access_token, function (error, result) {
-          if (error) {
-            res.error = (knownErrors.hasOwnProperty(err.message)) ? knownErrors[err.message] : knownErrors["VALIDATION_FAILED"];
-            next();
-          } else {
-            res.updated = result;
-            next();
-          }
-        });
+        res.updated = result;
+        next();
       }
     });
   }
 }
 
+function askResetToken(req, res, next) {
+  var email = req.query.email;
+  if (email === undefined) {
+    res.error = knownErrors["PAR_MISSING"];
+    next();
+  } else {
+    users.askResetToken(email, function (error) {
+      if (error) {
+        res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["RESETTOKEN_FAILED"];
+        next();
+      } else {
+        res.done = true;
+        next();
+      }
+    });
+  }
+}
+
+function resetPassword(req, res, next) {
+  var newPassword = req.query.newPassword;
+  var token = req.query.id;
+  if (newPassword === undefined || token === undefined) {
+    res.error = knownErrors["PAR_MISSING"];
+    next();
+  } else {
+    users.resetPassword(token, newPassword, function (error, result) {
+      if (error) {
+        res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["RESETTOKEN_FAILED"];
+        next();
+      } else {
+        res.updated = result;
+        next();
+      }
+    })
+  }
+}
+
+
 router.post(api_dir + "login", [preAPI, login, sendResponse]);
 router.post(api_dir + "register", [preAPI, register, sendResponse]);
 router.get(api_dir + "activate", [preAPI, activate, sendResponse]);
+router.get(api_dir + "askResetToken", [preAPI, askResetToken, sendResponse]);
+router.get(api_dir + "resetPassword", [preAPI, resetPassword, sendResponse]);
 
 // router.post(api_dir + "modify/:source/:id", [preAPI, modify, sendResponse]);
 // router.post(api_dir + "remove/:source/:id", [preAPI, remove, sendResponse]);
