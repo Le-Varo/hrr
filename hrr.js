@@ -231,12 +231,12 @@ function resetPassword(req, res, next) {
     res.error = knownErrors["PAR_MISSING"];
     next();
   } else {
-    users.resetPassword(token, newPassword, function (error) {
+    users.resetPassword(token, newPassword, function (error, result) {
       if (error) {
         res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["RESETTOKEN_FAILED"];
         next();
       } else {
-        res.done = true;
+        res.updated = result;
         next();
       }
     })
