@@ -12,7 +12,8 @@ const helmet = require('helmet');
 
 const basicAuth = require('basic-auth');
 
-const config = require("./lib/main/config.js")
+const config = require("./lib/main/config.js");
+const Query = require("./lib/main/query.js");
 const users = require("./lib/main/admin/users.js");
 
 var app = express();
@@ -106,7 +107,20 @@ function sendResponse(req, res) {
   var response = {
     response_time: ''
   };
-  if (res.done) {
+
+  if (res.result) {
+    response.results_count = (res.result[0] !== undefined && res.result[0].count !== undefined) ? res.result[0].count : res.result.length;
+
+    if (req.body.resultsPerPage) {
+      response.page = req.body.page;
+      response.nextPage = "None";
+      if (req.body.resultsPerPage <= res.result.length) {
+        response.nextPage = (req.body.page + 1);
+      }
+    }
+
+    response.results = (res.result[0] !== undefined && res.result[0].count !== undefined) ? undefined : res.result;
+  } else if (res.done) {
     response.done = res.done;
   } else if (res.user) {
     response.user = res.user;
@@ -130,7 +144,7 @@ function sendResponse(req, res) {
   res.send(response);
 }
 
-function preAPI(req, res, next) {
+function getHost(req, res, next) {
   config.setHost(req.get('host'));
   next();
 }
@@ -207,7 +221,7 @@ function activate(req, res, next) {
 }
 
 function askResetToken(req, res, next) {
-  var email = req.query.email;
+  var email = req.body.email;
   if (email === undefined) {
     res.error = knownErrors["PAR_MISSING"];
     next();
@@ -243,16 +257,62 @@ function resetPassword(req, res, next) {
   }
 }
 
+function get(req, res, next) {
+  var query = (req.params.query) ? req.params.query : "";
+  var sour = req.params.source;
 
-router.post(api_dir + "login", [preAPI, login, sendResponse]);
-router.post(api_dir + "register", [preAPI, register, sendResponse]);
-router.get(api_dir + "activate", [preAPI, activate, sendResponse]);
-router.get(api_dir + "askResetToken", [preAPI, askResetToken, sendResponse]);
-router.get(api_dir + "resetPassword", [preAPI, resetPassword, sendResponse]);
+  try {
+    var source = require('./lib/main/admin/' + sour + '.js');
 
-// router.post(api_dir + "modify/:source/:id", [preAPI, modify, sendResponse]);
-// router.post(api_dir + "remove/:source/:id", [preAPI, remove, sendResponse]);
-// router.post(api_dir + "add/:source", [preAPI, add, sendResponse]);
+    source.get(new Query(query), req.body, function (error, result) {
+      if (error) {
+        console.error(error);
+      } else {
+        res.result = result;
+        next();
+      }
+    });
+  } catch (e) {
+    response.error = knownErrors["METH_NOTFOUND"];
+    next();
+  }
+}
+
+function checkUser(req, res, next) {
+  function unauthorized(res) {
+    res.set('WWW-Authenticate', 'Basic realm=Authorization Required');
+    return res.sendStatus(401);
+  }
+  var user = basicAuth(req);
+
+  if (!user || !user.name) {
+    return unauthorized(res);
+  } else {
+    users.check(user.name, function (error, result) {
+      if (error) {
+        if (error.message === "UNAUTHORIZED") {
+          return unauthorized(res);
+        } else {
+          console.error(error);
+        }
+      } else {
+        req.body.user = result;
+      }
+    });
+  }
+}
+
+
+router.post(api_dir + "register", [getHost, register, sendResponse]);
+router.get(api_dir + "activate", [activate, sendResponse]);
+router.post(api_dir + "login", [login, sendResponse]);
+router.post(api_dir + "askResetToken", [getHost, askResetToken, sendResponse]);
+router.get(api_dir + "resetPassword", [getHost, resetPassword, sendResponse]);
+
+router.post(api_dir + "get/:source/:query*?", [checkUser, get, sendResponse]);
+// router.post(api_dir + "modify/:source/:id", [checkUser, modify, sendResponse]);
+// router.post(api_dir + "remove/:source/:id", [checkUser, remove, sendResponse]);
+// router.post(api_dir + "add/:source", [checkUser, add, sendResponse]);
 
 router.all(api_dir + '*', [sendResponse]); // Recoge el resto de peticiones
 
