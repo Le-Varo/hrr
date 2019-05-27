@@ -14,7 +14,9 @@ const basicAuth = require('basic-auth');
 
 const config = require("./lib/main/config.js");
 const Query = require("./lib/main/query.js");
-const users = require("./lib/main/admin/users.js");
+
+var sources = {};
+sources["users"] = require("./lib/main/admin/users.js");
 
 var app = express();
 // Deja elegir a heroku el puerto
@@ -158,14 +160,13 @@ function login(req, res, next) {
     var auth = basicAuth(req);
     token = (auth) ? auth.name : "";
   }
-
   if (!email && !pass && !token) {
     res.error = knownErrors["LOGIN_FAILED"];
     next();
   } else {
-    users.login(email, pass, token, function (err, user) {
-      if (err) {
-        // console.error(err);
+    sources["users"].login(email, pass, token, function (error, user) {
+      if (error) {
+        console.error(error);
         res.error = knownErrors["LOGIN_FAILED"];
         next();
       } else {
@@ -189,10 +190,10 @@ function register(req, res, next) {
       "password": pass
     }
 
-    users.register(parameters, function (err, user) {
-      if (err) {
-        // console.error(err);
-        res.error = (knownErrors.hasOwnProperty(err.message)) ? knownErrors[err.message] : knownErrors["REGISTER_FAILED"];
+    sources["users"].register(parameters, function (error, user) {
+      if (error) {
+        console.error(error);
+        res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["REGISTER_FAILED"];
         next();
       } else {
         res.user = user;
@@ -208,9 +209,10 @@ function activate(req, res, next) {
     res.error = knownErrors["PAR_MISSING"];
     next();
   } else {
-    users.activate(id, function (error, result) {
+    sources["users"].activate(id, function (error, result) {
       if (error) {
-        res.error = (knownErrors.hasOwnProperty(err.message)) ? knownErrors[err.message] : knownErrors["ACTIVATION_FAILED"];
+        console.error(error);
+        res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["ACTIVATION_FAILED"];
         next();
       } else {
         res.updated = result;
@@ -226,8 +228,9 @@ function askResetToken(req, res, next) {
     res.error = knownErrors["PAR_MISSING"];
     next();
   } else {
-    users.askResetToken(email, function (error) {
+    sources["users"].askResetToken(email, function (error) {
       if (error) {
+        console.error(error);
         res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["RESETTOKEN_FAILED"];
         next();
       } else {
@@ -245,8 +248,9 @@ function resetPassword(req, res, next) {
     res.error = knownErrors["PAR_MISSING"];
     next();
   } else {
-    users.resetPassword(token, newPassword, function (error, result) {
+    sources["users"].resetPassword(token, newPassword, function (error, result) {
       if (error) {
+        console.error(error);
         res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["RESETTOKEN_FAILED"];
         next();
       } else {
@@ -262,18 +266,24 @@ function get(req, res, next) {
   var sour = req.params.source;
 
   try {
-    var source = require('./lib/main/admin/' + sour + '.js');
-
+    var source;
+    if (sources[sour]) {
+      source = sources[sour];
+    } else {
+      source = require('./lib/main/admin/' + sour + '.js');
+      sources[sour] = source;
+    }
     source.get(new Query(query), req.body, function (error, result) {
       if (error) {
-        console.error(error);
+        // console.error(error);
       } else {
         res.result = result;
         next();
       }
     });
   } catch (e) {
-    response.error = knownErrors["METH_NOTFOUND"];
+    // console.error(e)
+    res.error = knownErrors["METH_NOTFOUND"];
     next();
   }
 }
@@ -288,15 +298,16 @@ function checkUser(req, res, next) {
   if (!user || !user.name) {
     return unauthorized(res);
   } else {
-    users.check(user.name, function (error, result) {
+    sources["users"].check(user.name, function (error, result) {
       if (error) {
         if (error.message === "UNAUTHORIZED") {
+          console.error(error);
           return unauthorized(res);
         } else {
           console.error(error);
         }
       } else {
-        req.body.user = result;
+        next()
       }
     });
   }
