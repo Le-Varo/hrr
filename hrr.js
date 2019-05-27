@@ -313,6 +313,26 @@ function checkUser(req, res, next) {
   }
 }
 
+function modifyOwnProfile(req, res, next) {
+  var parameters = req.body;
+  if (!parameters) {
+    res.error = knownErrors["PAR_MISSING"];
+    next();
+  } else {
+    var user = basicAuth(req);
+    sources["users"].modifyOwnProfile(user.name, parameters, function (error, result) {
+      if (error) {
+        console.error(error);
+        res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["MODIFYOWNPROFILE_FAILED"];
+        next();
+      } else {
+        res.modified = result;
+        next();
+      }
+    })
+  }
+}
+
 
 router.post(api_dir + "register", [getHost, register, sendResponse]);
 router.get(api_dir + "activate", [activate, sendResponse]);
@@ -321,6 +341,7 @@ router.post(api_dir + "askResetToken", [getHost, askResetToken, sendResponse]);
 router.get(api_dir + "resetPassword", [getHost, resetPassword, sendResponse]);
 
 router.post(api_dir + "get/:source/:query*?", [checkUser, get, sendResponse]);
+router.post(api_dir + "modify/ownProfile/", [checkUser, modifyOwnProfile, sendResponse]);
 // router.post(api_dir + "modify/:source/:id", [checkUser, modify, sendResponse]);
 // router.post(api_dir + "remove/:source/:id", [checkUser, remove, sendResponse]);
 // router.post(api_dir + "add/:source", [checkUser, add, sendResponse]);
