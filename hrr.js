@@ -12,8 +12,11 @@ const helmet = require('helmet');
 
 const basicAuth = require('basic-auth');
 
-const config = require("./lib/main/config.js")
-const users = require("./lib/main/admin/users.js");
+const config = require("./lib/main/config.js");
+const Query = require("./lib/main/query.js");
+
+var sources = {};
+sources["users"] = require("./lib/main/admin/users.js");
 
 var app = express();
 // Deja elegir a heroku el puerto
@@ -106,7 +109,20 @@ function sendResponse(req, res) {
   var response = {
     response_time: ''
   };
-  if (res.done) {
+
+  if (res.result) {
+    response.results_count = (res.result[0] !== undefined && res.result[0].count !== undefined) ? res.result[0].count : res.result.length;
+
+    if (req.body.resultsPerPage) {
+      response.page = req.body.page;
+      response.nextPage = "None";
+      if (req.body.resultsPerPage <= res.result.length) {
+        response.nextPage = (req.body.page + 1);
+      }
+    }
+
+    response.results = (res.result[0] !== undefined && res.result[0].count !== undefined) ? undefined : res.result;
+  } else if (res.done) {
     response.done = res.done;
   } else if (res.user) {
     response.user = res.user;
@@ -130,7 +146,7 @@ function sendResponse(req, res) {
   res.send(response);
 }
 
-function preAPI(req, res, next) {
+function getHost(req, res, next) {
   config.setHost(req.get('host'));
   next();
 }
@@ -144,14 +160,13 @@ function login(req, res, next) {
     var auth = basicAuth(req);
     token = (auth) ? auth.name : "";
   }
-
   if (!email && !pass && !token) {
     res.error = knownErrors["LOGIN_FAILED"];
     next();
   } else {
-    users.login(email, pass, token, function (err, user) {
-      if (err) {
-        // console.error(err);
+    sources["users"].login(email, pass, token, function (error, user) {
+      if (error) {
+        console.error(error);
         res.error = knownErrors["LOGIN_FAILED"];
         next();
       } else {
@@ -175,10 +190,10 @@ function register(req, res, next) {
       "password": pass
     }
 
-    users.register(parameters, function (err, user) {
-      if (err) {
-        // console.error(err);
-        res.error = (knownErrors.hasOwnProperty(err.message)) ? knownErrors[err.message] : knownErrors["REGISTER_FAILED"];
+    sources["users"].register(parameters, function (error, user) {
+      if (error) {
+        console.error(error);
+        res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["REGISTER_FAILED"];
         next();
       } else {
         res.user = user;
@@ -194,9 +209,10 @@ function activate(req, res, next) {
     res.error = knownErrors["PAR_MISSING"];
     next();
   } else {
-    users.activate(id, function (error, result) {
+    sources["users"].activate(id, function (error, result) {
       if (error) {
-        res.error = (knownErrors.hasOwnProperty(err.message)) ? knownErrors[err.message] : knownErrors["ACTIVATION_FAILED"];
+        console.error(error);
+        res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["ACTIVATION_FAILED"];
         next();
       } else {
         res.updated = result;
@@ -207,13 +223,14 @@ function activate(req, res, next) {
 }
 
 function askResetToken(req, res, next) {
-  var email = req.query.email;
+  var email = req.body.email;
   if (email === undefined) {
     res.error = knownErrors["PAR_MISSING"];
     next();
   } else {
-    users.askResetToken(email, function (error) {
+    sources["users"].askResetToken(email, function (error) {
       if (error) {
+        console.error(error);
         res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["RESETTOKEN_FAILED"];
         next();
       } else {
@@ -231,8 +248,9 @@ function resetPassword(req, res, next) {
     res.error = knownErrors["PAR_MISSING"];
     next();
   } else {
-    users.resetPassword(token, newPassword, function (error, result) {
+    sources["users"].resetPassword(token, newPassword, function (error, result) {
       if (error) {
+        console.error(error);
         res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["RESETTOKEN_FAILED"];
         next();
       } else {
@@ -243,16 +261,69 @@ function resetPassword(req, res, next) {
   }
 }
 
+function get(req, res, next) {
+  var query = (req.params.query) ? req.params.query : "";
+  var sour = req.params.source;
 
-router.post(api_dir + "login", [preAPI, login, sendResponse]);
-router.post(api_dir + "register", [preAPI, register, sendResponse]);
-router.get(api_dir + "activate", [preAPI, activate, sendResponse]);
-router.get(api_dir + "askResetToken", [preAPI, askResetToken, sendResponse]);
-router.get(api_dir + "resetPassword", [preAPI, resetPassword, sendResponse]);
+  try {
+    var source;
+    if (sources[sour]) {
+      source = sources[sour];
+    } else {
+      source = require('./lib/main/admin/' + sour + '.js');
+      sources[sour] = source;
+    }
+    source.get(new Query(query), req.body, function (error, result) {
+      if (error) {
+        console.error(error);
+      } else {
+        res.result = result;
+        next();
+      }
+    });
+  } catch (e) {
+    console.error(e)
+    res.error = knownErrors["METH_NOTFOUND"];
+    next();
+  }
+}
 
-// router.post(api_dir + "modify/:source/:id", [preAPI, modify, sendResponse]);
-// router.post(api_dir + "remove/:source/:id", [preAPI, remove, sendResponse]);
-// router.post(api_dir + "add/:source", [preAPI, add, sendResponse]);
+function checkUser(req, res, next) {
+  function unauthorized(res) {
+    res.set('WWW-Authenticate', 'Basic realm=Authorization Required');
+    return res.sendStatus(401);
+  }
+  var user = basicAuth(req);
+
+  if (!user || !user.name) {
+    return unauthorized(res);
+  } else {
+    sources["users"].check(user.name, function (error, result) {
+      if (error) {
+        if (error.message === "UNAUTHORIZED") {
+          console.error(error);
+          return unauthorized(res);
+        } else {
+          console.error(error);
+        }
+      } else {
+        next()
+      }
+    });
+  }
+}
+
+
+router.post(api_dir + "register", [getHost, register, sendResponse]);
+router.get(api_dir + "activate", [activate, sendResponse]);
+router.post(api_dir + "login", [login, sendResponse]);
+router.post(api_dir + "askResetToken", [getHost, askResetToken, sendResponse]);
+router.get(api_dir + "resetPassword", [getHost, resetPassword, sendResponse]);
+
+router.post(api_dir + "get/:source/:query*?", [checkUser, get, sendResponse]);
+// router.post(api_dir + "modify/:source/:id", [checkUser, modify, sendResponse]);
+// router.post(api_dir + "remove/:source/:id", [checkUser, remove, sendResponse]);
+// router.post(api_dir + "add/:source", [checkUser, add, sendResponse]);
 
 router.all(api_dir + '*', [sendResponse]); // Recoge el resto de peticiones
 
