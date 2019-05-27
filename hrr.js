@@ -275,14 +275,14 @@ function get(req, res, next) {
     }
     source.get(new Query(query), req.body, function (error, result) {
       if (error) {
-        // console.error(error);
+        console.error(error);
       } else {
         res.result = result;
         next();
       }
     });
   } catch (e) {
-    // console.error(e)
+    console.error(e)
     res.error = knownErrors["METH_NOTFOUND"];
     next();
   }
