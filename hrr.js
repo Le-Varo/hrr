@@ -63,6 +63,10 @@ var knownErrors = {
     msg: "Method not found",
     status: 404
   },
+  "MODIFYOWNPROFILE_FAILED": {
+    msg: "Modification failed! Try Again.",
+    status: 403
+  },
   "PAR_INUSE": {
     msg: "Email in Use.",
     status: 400
@@ -326,13 +330,12 @@ function modifyOwnProfile(req, res, next) {
         res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["MODIFYOWNPROFILE_FAILED"];
         next();
       } else {
-        res.modified = result;
+        res.updated = result;
         next();
       }
     })
   }
 }
-
 
 router.post(api_dir + "register", [getHost, register, sendResponse]);
 router.get(api_dir + "activate", [activate, sendResponse]);
