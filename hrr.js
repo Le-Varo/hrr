@@ -15,6 +15,8 @@ const basicAuth = require('basic-auth');
 const config = require("./lib/main/config.js");
 const Query = require("./lib/main/query.js");
 
+const itemTypes = require("./lib/main/itemTypes.js");
+
 var sources = {};
 sources["users"] = require("./lib/main/admin/users.js");
 
@@ -372,11 +374,18 @@ function create(req, res, next) {
   }
 }
 
+function getAvaiableItemTypes(req, res, next) {
+  res.result = itemTypes.getAvaiableItemTypes();
+  next();
+}
+
 router.post(api_dir + "register", [getHost, register, sendResponse]);
 router.get(api_dir + "activate", [activate, sendResponse]);
 router.post(api_dir + "login", [login, sendResponse]);
 router.post(api_dir + "askResetToken", [getHost, askResetToken, sendResponse]);
 router.get(api_dir + "resetPassword", [getHost, resetPassword, sendResponse]);
+
+router.get(api_dir + "getAvaiableItemTypes", [checkUser, getAvaiableItemTypes, sendResponse]);
 
 router.post(api_dir + "create/:source", [checkUser, create, sendResponse]);
 router.post(api_dir + "get/:source/:query*?", [checkUser, get, sendResponse]);
