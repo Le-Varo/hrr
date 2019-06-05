@@ -132,6 +132,8 @@ function sendResponse(req, res) {
     response.user = res.user;
   } else if (res.updated) {
     response.updated = res.updated;
+  } else if (res.created) {
+    response.created = res.created;
   } else if (res.error) {
     response.request = req.url;
     response.method = req.method;
@@ -311,6 +313,7 @@ function checkUser(req, res, next) {
           console.error(error);
         }
       } else {
+        req.user = result;
         next()
       }
     });
@@ -337,17 +340,49 @@ function modifyOwnProfile(req, res, next) {
   }
 }
 
+function create(req, res, next) {
+  var parameters = req.body;
+  var sour = req.params.source;
+
+  if (!parameters) {
+    res.error = knownErrors["PAR_MISSING"];
+    next();
+  } else {
+    try {
+      var source;
+      if (sources[sour]) {
+        source = sources[sour];
+      } else {
+        source = require('./lib/main/admin/' + sour + '.js');
+        sources[sour] = source;
+      }
+      source.create(req.user, parameters, function (error, result) {
+        if (error) {
+          console.error(error);
+        } else {
+          res.created = result;
+          next();
+        }
+      });
+    } catch (e) {
+      console.error(e)
+      res.error = knownErrors["METH_NOTFOUND"];
+      next();
+    }
+  }
+}
+
 router.post(api_dir + "register", [getHost, register, sendResponse]);
 router.get(api_dir + "activate", [activate, sendResponse]);
 router.post(api_dir + "login", [login, sendResponse]);
 router.post(api_dir + "askResetToken", [getHost, askResetToken, sendResponse]);
 router.get(api_dir + "resetPassword", [getHost, resetPassword, sendResponse]);
 
+router.post(api_dir + "create/:source", [checkUser, create, sendResponse]);
 router.post(api_dir + "get/:source/:query*?", [checkUser, get, sendResponse]);
 router.post(api_dir + "modify/ownProfile/", [checkUser, modifyOwnProfile, sendResponse]);
 // router.post(api_dir + "modify/:source/:id", [checkUser, modify, sendResponse]);
 // router.post(api_dir + "remove/:source/:id", [checkUser, remove, sendResponse]);
-// router.post(api_dir + "add/:source", [checkUser, add, sendResponse]);
 
 router.all(api_dir + '*', [sendResponse]); // Recoge el resto de peticiones
 
