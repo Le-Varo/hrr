@@ -342,6 +342,8 @@ function modifyOwnProfile(req, res, next) {
 
 function create(req, res, next) {
   var parameters = req.body;
+  var sour = req.params.source;
+
   if (!parameters) {
     res.error = knownErrors["PAR_MISSING"];
     next();
