@@ -16,6 +16,7 @@ const config = require("./lib/main/config.js");
 const Query = require("./lib/main/query.js");
 
 const itemTypes = require("./lib/main/itemTypes.js");
+itemTypes.getAvaiableItemTypes();
 
 var sources = {};
 sources["users"] = require("./lib/main/admin/users.js");
@@ -361,6 +362,8 @@ function create(req, res, next) {
       source.create(req.user, parameters, function (error, result) {
         if (error) {
           console.error(error);
+          res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["CREATION_FAILED"];
+          next();
         } else {
           res.created = result;
           next();
@@ -379,6 +382,28 @@ function getAvaiableItemTypes(req, res, next) {
   next();
 }
 
+function searchItem(req, res, next) {
+  var type = req.params.type;
+  var query = req.params.query;
+
+  if (type && query) {
+    itemTypes.search(query, type, function (error, result) {
+      if (error) {
+        console.error(error);
+        res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["SEARCH_FAILED"];
+        next();
+      } else {
+        res.result = result;
+        next();
+      }
+    });
+  } else {
+    console.error(error);
+    res.error = knownErrors["PAR_MISSING"];
+    next();
+  }
+}
+
 router.post(api_dir + "register", [getHost, register, sendResponse]);
 router.get(api_dir + "activate", [activate, sendResponse]);
 router.post(api_dir + "login", [login, sendResponse]);
@@ -386,6 +411,7 @@ router.post(api_dir + "askResetToken", [getHost, askResetToken, sendResponse]);
 router.get(api_dir + "resetPassword", [getHost, resetPassword, sendResponse]);
 
 router.get(api_dir + "getAvaiableItemTypes", [checkUser, getAvaiableItemTypes, sendResponse]);
+router.get(api_dir + "search/:type/:query", [checkUser, searchItem, sendResponse]);
 
 router.post(api_dir + "create/:source", [checkUser, create, sendResponse]);
 router.post(api_dir + "get/:source/:query*?", [checkUser, get, sendResponse]);
