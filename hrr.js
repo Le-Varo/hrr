@@ -404,6 +404,19 @@ function searchItem(req, res, next) {
   }
 }
 
+function getFOWSets(req, res, next) {
+  itemTypes.miscellaneousFunctions("fow", "getSets", {}, function (error, result) {
+    if (error) {
+      console.error(error);
+      res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["SEARCH_FAILED"];
+      next();
+    } else {
+      res.result = result;
+      next();
+    }
+  });
+}
+
 router.post(api_dir + "register", [getHost, register, sendResponse]);
 router.get(api_dir + "activate", [activate, sendResponse]);
 router.post(api_dir + "login", [login, sendResponse]);
@@ -411,6 +424,7 @@ router.post(api_dir + "askResetToken", [getHost, askResetToken, sendResponse]);
 router.get(api_dir + "resetPassword", [getHost, resetPassword, sendResponse]);
 
 router.get(api_dir + "getAvaiableItemTypes", [checkUser, getAvaiableItemTypes, sendResponse]);
+router.get(api_dir + "getFOWSets", [checkUser, getFOWSets, sendResponse]);
 router.get(api_dir + "search/:type/:query", [checkUser, searchItem, sendResponse]);
 
 router.post(api_dir + "create/:source", [checkUser, create, sendResponse]);
