@@ -385,9 +385,10 @@ function getAvaiableItemTypes(req, res, next) {
 function searchItem(req, res, next) {
   var type = req.params.type;
   var query = req.params.query;
+  var parameters = req.body;
 
   if (type && query) {
-    itemTypes.search(query, type, function (error, result) {
+    itemTypes.search(query, type, parameters, function (error, result) {
       if (error) {
         console.error(error);
         res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["SEARCH_FAILED"];
