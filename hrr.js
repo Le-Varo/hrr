@@ -15,6 +15,9 @@ const basicAuth = require('basic-auth');
 const config = require("./lib/main/config.js");
 const Query = require("./lib/main/query.js");
 
+const itemTypes = require("./lib/main/itemTypes.js");
+itemTypes.getAvaiableItemTypes();
+
 var sources = {};
 sources["users"] = require("./lib/main/admin/users.js");
 
@@ -62,6 +65,10 @@ var knownErrors = {
   "METH_NOTFOUND": {
     msg: "Method not found",
     status: 404
+  },
+  "MODIFYOWNPROFILE_FAILED": {
+    msg: "Modification failed! Try Again.",
+    status: 403
   },
   "PAR_INUSE": {
     msg: "Email in Use.",
@@ -128,6 +135,8 @@ function sendResponse(req, res) {
     response.user = res.user;
   } else if (res.updated) {
     response.updated = res.updated;
+  } else if (res.created) {
+    response.created = res.created;
   } else if (res.error) {
     response.request = req.url;
     response.method = req.method;
@@ -307,12 +316,107 @@ function checkUser(req, res, next) {
           console.error(error);
         }
       } else {
+        req.user = result;
         next()
       }
     });
   }
 }
 
+function modifyOwnProfile(req, res, next) {
+  var parameters = req.body;
+  if (!parameters) {
+    res.error = knownErrors["PAR_MISSING"];
+    next();
+  } else {
+    var user = basicAuth(req);
+    sources["users"].modifyOwnProfile(user.name, parameters, function (error, result) {
+      if (error) {
+        console.error(error);
+        res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["MODIFYOWNPROFILE_FAILED"];
+        next();
+      } else {
+        res.updated = result;
+        next();
+      }
+    })
+  }
+}
+
+function create(req, res, next) {
+  var parameters = req.body;
+  var sour = req.params.source;
+
+  if (!parameters) {
+    res.error = knownErrors["PAR_MISSING"];
+    next();
+  } else {
+    try {
+      var source;
+      if (sources[sour]) {
+        source = sources[sour];
+      } else {
+        source = require('./lib/main/admin/' + sour + '.js');
+        sources[sour] = source;
+      }
+      source.create(req.user, parameters, function (error, result) {
+        if (error) {
+          console.error(error);
+          res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["CREATION_FAILED"];
+          next();
+        } else {
+          res.created = result;
+          next();
+        }
+      });
+    } catch (e) {
+      console.error(e)
+      res.error = knownErrors["METH_NOTFOUND"];
+      next();
+    }
+  }
+}
+
+function getAvaiableItemTypes(req, res, next) {
+  res.result = itemTypes.getAvaiableItemTypes();
+  next();
+}
+
+function searchItem(req, res, next) {
+  var type = req.params.type;
+  var query = req.params.query;
+  var parameters = req.body;
+
+  if (type && query) {
+    itemTypes.search(query, type, parameters, function (error, result) {
+      if (error) {
+        console.error(error);
+        res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["SEARCH_FAILED"];
+        next();
+      } else {
+        res.result = result;
+        next();
+      }
+    });
+  } else {
+    console.error(error);
+    res.error = knownErrors["PAR_MISSING"];
+    next();
+  }
+}
+
+function getFOWParameters(req, res, next) {
+  itemTypes.miscellaneousFunctions("fow", "getParameters", {}, function (error, result) {
+    if (error) {
+      console.error(error);
+      res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["SEARCH_FAILED"];
+      next();
+    } else {
+      res.result = result;
+      next();
+    }
+  });
+}
 
 router.post(api_dir + "register", [getHost, register, sendResponse]);
 router.get(api_dir + "activate", [activate, sendResponse]);
@@ -320,10 +424,15 @@ router.post(api_dir + "login", [login, sendResponse]);
 router.post(api_dir + "askResetToken", [getHost, askResetToken, sendResponse]);
 router.get(api_dir + "resetPassword", [getHost, resetPassword, sendResponse]);
 
+router.get(api_dir + "getAvaiableItemTypes", [checkUser, getAvaiableItemTypes, sendResponse]);
+router.get(api_dir + "getFOWParameters", [checkUser, getFOWParameters, sendResponse]);
+router.get(api_dir + "search/:type/:query", [checkUser, searchItem, sendResponse]);
+
+router.post(api_dir + "create/:source", [checkUser, create, sendResponse]);
 router.post(api_dir + "get/:source/:query*?", [checkUser, get, sendResponse]);
+router.post(api_dir + "modify/ownProfile/", [checkUser, modifyOwnProfile, sendResponse]);
 // router.post(api_dir + "modify/:source/:id", [checkUser, modify, sendResponse]);
 // router.post(api_dir + "remove/:source/:id", [checkUser, remove, sendResponse]);
-// router.post(api_dir + "add/:source", [checkUser, add, sendResponse]);
 
 router.all(api_dir + '*', [sendResponse]); // Recoge el resto de peticiones
 
