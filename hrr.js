@@ -187,19 +187,11 @@ function login(req, res, next) {
 }
 
 function register(req, res, next) {
-  var email = req.body.email;
-  var pass = req.body.password;
-
-  if (email === undefined || pass === undefined) {
+  if (req.body.email === undefined || req.body.password === undefined) {
     res.error = knownErrors["PAR_MISSING"];
     next();
   } else {
-    var parameters = {
-      "email": email,
-      "password": pass
-    }
-
-    sources["users"].register(parameters, function (error, user) {
+    sources["users"].register(req.body, function (error, user) {
       if (error) {
         console.error(error);
         res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["REGISTER_FAILED"];
