@@ -3,8 +3,7 @@ const chaiHttp = require('chai-http');
 const expect = require('chai').expect;
 const crypto = require("crypto");
 
-const config = require("../lib/main/config.js");
-const registerToken = require("../lib/main/admin/tokens/registerToken.js");
+const passwordToken = require("../lib/main/admin/tokens/passwordToken.js");
 const users = require("../lib/main/admin/users.js");
 
 chai.use(chaiHttp);
@@ -38,9 +37,11 @@ describe("Ask Reset Token OK: ", () => {
             });
     });
     after((done) => {
-        users.remove(userCreated.access_token, function (err) {
-            done()
-        })
+        passwordToken.check(null, userCreated.access_token, function () {
+            users.remove(userCreated.access_token, function (err) {
+                done()
+            });
+        });
     });
 });
 
