@@ -60,7 +60,7 @@ describe("Register OK: ", () => {
         }
     });
 });
-describe("Register With Errors: ", () => {
+describe("Register Fails: ", () => {
     var usersCreated = [];
     it("Should fail if you insert a user that already exists", (done) => {
         var userToSend = {

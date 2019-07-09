@@ -104,7 +104,7 @@ describe("Login OK: ", () => {
     });
 });
 
-describe("Login Not OK: ", () => {
+describe("Login Fails: ", () => {
     var usersCreated = [];
 
     it("Should error if user is not activated", (done) => {
