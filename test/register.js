@@ -7,7 +7,7 @@ const users = require("../lib/main/admin/users.js");
 chai.use(chaiHttp);
 const url = 'http://localhost:3000';
 
-var users = [];
+var usersCreated = [];
 
 describe("Register OK: ", () => {
     it("Should insert a user with nick", (done) => {
@@ -22,7 +22,7 @@ describe("Register OK: ", () => {
             .end(function (err, res) {
                 // console.log(res.body)
                 var user = res.body.user;
-                users.push(user.access_token);
+                usersCreated.push(user.access_token);
 
                 expect(res).to.have.status(200);
                 expect(user.nick).to.be.equal(userToSend.nick);
@@ -42,7 +42,7 @@ describe("Register OK: ", () => {
             .end(function (err, res) {
                 // console.log(res.body)
                 var user = res.body.user
-                users.push(user.access_token);
+                usersCreated.push(user.access_token);
 
                 expect(res).to.have.status(200);
                 expect(user.nick).to.be.equal(userToSend.email.split("@")[0]);
