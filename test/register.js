@@ -7,9 +7,9 @@ const users = require("../lib/main/admin/users.js");
 chai.use(chaiHttp);
 const url = 'http://localhost:3000';
 
-var usersCreated = [];
 
 describe("Register OK: ", () => {
+    var usersCreated = [];
     it("Should insert a user with nick", (done) => {
         var userToSend = {
             nick: "prueba",
@@ -53,10 +53,15 @@ describe("Register OK: ", () => {
     });
     // Quitar usuarios introducidos
     after(() => {
-        users.remove(usersCreated, function (err, res) {})
+        if (usersCreated.length > 0) {
+            users.activateByAccessToken(usersCreated, function (err, res) {
+                users.remove(usersCreated, function (err, res) {})
+            });
+        }
     });
 });
 describe("Register With Errors: ", () => {
+    var usersCreated = [];
     it("Should fail if you insert a user that already exists", (done) => {
         var userToSend = {
             email: Math.random().toString(36).substring(7) + "@localhost.com",
@@ -68,6 +73,7 @@ describe("Register With Errors: ", () => {
             .send(userToSend)
             .end(function (err, res) {
                 expect(res).to.have.status(200);
+                usersCreated.push(res.body.user.access_token);
                 chai.request(url)
                     .post("/register")
                     .send(userToSend)
@@ -105,5 +111,13 @@ describe("Register With Errors: ", () => {
                 expect(res).to.have.status(400);
                 done();
             });
+    });
+    // Quitar usuarios introducidos
+    after(() => {
+        if (usersCreated.length > 0) {
+            users.activateByAccessToken(usersCreated, function (err, res) {
+                users.remove(usersCreated, function (err, res) {})
+            });
+        }
     });
 });
