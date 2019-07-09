@@ -191,7 +191,11 @@ function register(req, res, next) {
     res.error = knownErrors["PAR_MISSING"];
     next();
   } else {
-    sources["users"].register(req.body, function (error, user) {
+    var parameters = {};
+    Object.keys(req.body).forEach(function (key) {
+      parameters[key] = req.body[key];
+    })
+    sources["users"].register(new Object(parameters), function (error, user) {
       if (error) {
         console.error(error);
         res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["REGISTER_FAILED"];
@@ -210,7 +214,7 @@ function activate(req, res, next) {
     res.error = knownErrors["PAR_MISSING"];
     next();
   } else {
-    sources["users"].activate(id, function (error, result) {
+    sources["users"].activate(id, null, function (error, result) {
       if (error) {
         console.error(error);
         res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["ACTIVATION_FAILED"];
