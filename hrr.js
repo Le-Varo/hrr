@@ -163,12 +163,10 @@ function getHost(req, res, next) {
 function login(req, res, next) {
   var email = req.body.email;
   var pass = req.body.password;
-  var token = "";
 
-  if (!email && !pass) {
-    var auth = basicAuth(req);
-    token = (auth) ? auth.name : "";
-  }
+  var auth = basicAuth(req);
+  var token = (auth) ? auth.name : "";
+
   if (!email && !pass && !token) {
     res.error = knownErrors["LOGIN_FAILED"];
     next();
