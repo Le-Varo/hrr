@@ -45,10 +45,11 @@ describe("Activation OK: ", () => {
 
 describe("Activation Fails: ", () => {
     it("It should fail if there is no ticket", (done) => {
+        var tokenHash = crypto.createHash("sha256").update(crypto.randomBytes(16).toString('hex').concat(config.getTokenConfig().magicWord));
         chai.request(url)
             .get("/activate")
             .query({
-                id: crypto.createHash("sha256").update(crypto.randomBytes(16).toString('hex').concat(config.getTokenConfig().magicWord))
+                id: tokenHash.digest('hex'),
             })
             .end(function (err, res) {
                 expect(res).to.have.status(403);

@@ -1,7 +1,6 @@
 const chai = require('chai');
 const chaiHttp = require('chai-http');
 const expect = require('chai').expect;
-const crypto = require("crypto");
 
 const passwordToken = require("../lib/main/admin/tokens/passwordToken.js");
 const users = require("../lib/main/admin/users.js");
@@ -45,7 +44,7 @@ describe("Ask Reset Token OK: ", () => {
     });
 });
 
-describe("Reset Token Fails: ", () => {
+describe("Ask Reset Token Fails: ", () => {
     it("It should fail if there is no user with that email", (done) => {
         chai.request(url)
             .post("/askResetToken")
@@ -58,5 +57,3 @@ describe("Reset Token Fails: ", () => {
             });
     });
 });
-// Email correcto
-// Email incorrecto
