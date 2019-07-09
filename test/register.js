@@ -52,13 +52,9 @@ describe("Register OK: ", () => {
             });
     });
     // Quitar usuarios introducidos
-    // after(() => {
-    //     chai.request(url)
-    //         .del("/users/" + users.join(","))
-    //         .end(function () {
-    //             done();
-    //         });
-    // });
+    after(() => {
+        users.remove(usersCreated, function (err, res) {})
+    });
 });
 describe("Register With Errors: ", () => {
     it("Should fail if you insert a user that already exists", (done) => {
