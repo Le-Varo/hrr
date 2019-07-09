@@ -163,12 +163,10 @@ function getHost(req, res, next) {
 function login(req, res, next) {
   var email = req.body.email;
   var pass = req.body.password;
-  var token = "";
 
-  if (!email && !pass) {
-    var auth = basicAuth(req);
-    token = (auth) ? auth.name : "";
-  }
+  var auth = basicAuth(req);
+  var token = (auth) ? auth.name : "";
+
   if (!email && !pass && !token) {
     res.error = knownErrors["LOGIN_FAILED"];
     next();
@@ -187,19 +185,15 @@ function login(req, res, next) {
 }
 
 function register(req, res, next) {
-  var email = req.body.email;
-  var pass = req.body.password;
-
-  if (email === undefined || pass === undefined) {
+  if (req.body.email === undefined || req.body.password === undefined) {
     res.error = knownErrors["PAR_MISSING"];
     next();
   } else {
-    var parameters = {
-      "email": email,
-      "password": pass
-    }
-
-    sources["users"].register(parameters, function (error, user) {
+    var parameters = {};
+    Object.keys(req.body).forEach(function (key) {
+      parameters[key] = req.body[key];
+    })
+    sources["users"].register(new Object(parameters), function (error, user) {
       if (error) {
         console.error(error);
         res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["REGISTER_FAILED"];
@@ -218,7 +212,7 @@ function activate(req, res, next) {
     res.error = knownErrors["PAR_MISSING"];
     next();
   } else {
-    sources["users"].activate(id, function (error, result) {
+    sources["users"].activate(id, null, function (error, result) {
       if (error) {
         console.error(error);
         res.error = (knownErrors.hasOwnProperty(error.message)) ? knownErrors[error.message] : knownErrors["ACTIVATION_FAILED"];
