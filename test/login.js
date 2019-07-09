@@ -104,8 +104,47 @@ describe("Login OK: ", () => {
     });
 });
 
-// Login usuario existente
-// Login usuario existente via access_token
-// Login usuario existente con access_token y parametros distintos
-// Login usuario no activado
-// Login usuario no existente
+describe("Login Not OK: ", () => {
+    var usersCreated = [];
+
+    it("Should error if user is not activated", (done) => {
+        var userToSend = {
+            email: Math.random().toString(36).substring(7) + "@localhost.com",
+            password: Math.random().toString(36).substring(7),
+        }
+        chai.request(url)
+            .post("/register")
+            .send(userToSend)
+            .end(function (err, res) {
+                // console.log(res.body)
+                var user = res.body.user
+                usersCreated.push(user.access_token);
+                chai.request(url)
+                    .post("/login")
+                    .send(userToSend)
+                    .end(function (err, res) {
+                        expect(res).to.have.status(401);
+                        done();
+                    });
+            });
+    });
+    it("Should error if user is not registered", (done) => {
+        var userToSend = {
+            email: "test" + Math.random().toString(36).substring(7) + "@localhost.com",
+            password: Math.random().toString(36).substring(7),
+        }
+        chai.request(url)
+            .post("/login")
+            .send(userToSend)
+            .end(function (err, res) {
+                expect(res).to.have.status(401);
+                done();
+            });
+    });
+    // Quitar usuarios introducidos
+    after(() => {
+        if (usersCreated.length > 0) {
+            users.remove(usersCreated, function (err, res) {})
+        }
+    });
+});
