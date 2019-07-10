@@ -13,6 +13,7 @@ const helmet = require('helmet');
 const basicAuth = require('basic-auth');
 
 const config = require("./lib/main/config.js");
+console.log(config.getAll());
 const Query = require("./lib/main/query.js");
 
 const itemTypes = require("./lib/main/itemTypes.js");
