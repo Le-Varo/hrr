@@ -143,8 +143,8 @@ describe("Login Fails: ", () => {
     });
     // Quitar usuarios introducidos
     after(() => {
-        if (usersCreated.length > 0) {
+        users.activateByAccessToken(usersCreated, function () {
             users.remove(usersCreated, function (err, res) {})
-        }
+        })
     });
 });
