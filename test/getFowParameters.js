@@ -2,22 +2,35 @@ const chai = require('chai');
 const chaiHttp = require('chai-http');
 const expect = require('chai').expect;
 
+const users = require("../lib/main/admin/users.js");
+
 chai.use(chaiHttp);
-const url = 'http://localhost:3000';
+const url = process.env.HEROKU_URL || 'http://localhost:3000';
 
 describe("Get Fow Parameters: ", () => {
-    before(() => {
-
-    });
+    var userCreated;
     it("Should return a list with FoW Parameters, if logged", (done) => {
-        var access_token = "6431c65fe9d6acc0d9d02834b612b3b948fdfe999df47179badec8edd56f4b5d"
+        var userToSend = {
+            email: Math.random().toString(36).substring(7) + "@localhost.com",
+            password: Math.random().toString(36).substring(7),
+        }
         chai.request(url)
-            .get("/getFowParameters")
-            .auth(access_token, "")
+            .post("/register")
+            .send(userToSend)
             .end(function (err, res) {
                 // console.log(res.body)
-                expect(res).to.have.status(200);
-                done();
+                var user = res.body.user
+                userCreated = user.access_token;
+                users.activateByAccessToken(userCreated, function () {
+                    chai.request(url)
+                        .get("/getFowParameters")
+                        .auth(userCreated, "")
+                        .end(function (err, res) {
+                            // console.log(res.body)
+                            expect(res).to.have.status(200);
+                            done();
+                        });
+                });
             });
     });
     it("Should return an error, if not logged", (done) => {
@@ -28,5 +41,8 @@ describe("Get Fow Parameters: ", () => {
                 expect(res).to.have.status(401);
                 done();
             });
+    });
+    after(() => {
+        users.remove(userCreated, function (err, res) {})
     });
 });
