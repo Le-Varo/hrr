@@ -8,7 +8,7 @@ const registerToken = require("../lib/main/admin/tokens/registerToken.js");
 const users = require("../lib/main/admin/users.js");
 
 chai.use(chaiHttp);
-const url = 'http://localhost:3000';
+const url = process.env.HEROKU_URL || 'http://localhost:3000';
 
 
 describe("Activation OK: ", () => {
