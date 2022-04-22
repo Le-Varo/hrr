@@ -14,7 +14,7 @@
         "mocha": "^6.1.4",
         "mongoose": "^5.6.4",
         "morgan": "^1.9.1",
-        "nconf": "^0.10.0",
+        "nconf": "^0.11.4",
         "nodemailer": "^6.2.1",
         "puppeteer": "^1.18.1",
         "querystring": "^0.2.0",
