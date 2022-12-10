@@ -6,7 +6,7 @@
         "chai": "^4.2.0",
         "chai-http": "^4.3.0",
         "cheerio": "^1.0.0-rc.3",
-        "express": "^4.17.1",
+        "express": "^4.17.3",
         "file-stream-rotator": "^0.4.1",
         "fs": "0.0.1-security",
         "helmet": "^3.18.0",
